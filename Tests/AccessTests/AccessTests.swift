@@ -1,46 +1,126 @@
+#if canImport(AccessMacros)
+import SwiftSyntaxMacroExpansion
 import SwiftSyntaxMacros
+import SwiftSyntax
+import AccessMacros
 import SwiftSyntaxMacrosTestSupport
 import XCTest
 
-// Macro implementations build for the host, so the corresponding module is not available when cross-compiling. Cross-compiled tests may still make use of the macro itself in end-to-end tests.
-#if canImport(AccessMacros)
-import AccessMacros
+final class ComposableActionTests: XCTestCase {
+    private let macros: [String: Macro.Type] = [
+        "Access": AccessMacro.self
+    ]
 
-let testMacros: [String: Macro.Type] = [
-    "stringify": StringifyMacro.self,
-]
-#endif
-
-final class AccessTests: XCTestCase {
-    func testMacro() throws {
-        #if canImport(AccessMacros)
+    func testSimple() {
         assertMacroExpansion(
             """
-            #stringify(a + b)
+            enum Action {
+                @Access
+                struct A {}
+            }
             """,
             expandedSource: """
-            (a + b, "a + b")
+            enum Action {
+                struct A {}
+
+                public struct AAccessor {
+                    let value: A
+
+                    init(_ value: A) {
+                        self.value = value
+                    }
+                }
+            }
             """,
-            macros: testMacros
+            macros: macros
         )
-        #else
-        throw XCTSkip("macros are only supported when running tests for the host platform")
-        #endif
     }
 
-    func testMacroWithStringLiteral() throws {
-        #if canImport(AccessMacros)
+    func testPublicEnumFileprivateEmit() {
         assertMacroExpansion(
-            #"""
-            #stringify("Hello, \(name)")
-            """#,
-            expandedSource: #"""
-            ("Hello, \(name)", #""Hello, \(name)""#)
-            """#,
-            macros: testMacros
+            """
+            enum Action {
+                @Access(emit: .fileprivate)
+                public enum Delegate {
+                    case action
+                }
+            }
+            """,
+            expandedSource: """
+            enum Action {
+                public enum Delegate {
+                    case action
+                }
+
+                public struct DelegateAccessor {
+                    public let value: Delegate
+
+                    fileprivate init(_ value: Delegate) {
+                        self.value = value
+                    }
+                }
+            }
+            """,
+            macros: macros
         )
-        #else
-        throw XCTSkip("macros are only supported when running tests for the host platform")
-        #endif
+    }
+
+    func testFileprivateEnumEmit() {
+        assertMacroExpansion(
+            """
+            enum Action {
+                @Access(emit: .fileprivate)
+                fileprivate enum Private {
+                    case action
+                }
+            }
+            """,
+            expandedSource: """
+            enum Action {
+                fileprivate enum Private {
+                    case action
+                }
+
+                public struct PrivateAccessor {
+                    fileprivate let value: Private
+
+                    fileprivate init(_ value: Private) {
+                        self.value = value
+                    }
+                }
+            }
+            """,
+            macros: macros
+        )
+    }
+
+    func testFileprivateAccessPublicEmit() {
+        assertMacroExpansion(
+            """
+            enum Action {
+                @Access(read: .fileprivate, emit: .public)
+                public enum Public {
+                    case action
+                }
+            }
+            """,
+            expandedSource: """
+            enum Action {
+                public enum Public {
+                    case action
+                }
+
+                public struct PublicAccessor {
+                    fileprivate let value: Public
+
+                    public init(_ value: Public) {
+                        self.value = value
+                    }
+                }
+            }
+            """,
+            macros: macros
+        )
     }
 }
+#endif
