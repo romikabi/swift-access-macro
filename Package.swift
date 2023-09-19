@@ -19,6 +19,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-syntax.git", from: "509.0.0"),
         .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.1.0"),
+        .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", from: "1.0.0"),
     ],
     targets: [
         // Macro implementation that performs the source transformation of a macro.
@@ -34,7 +35,12 @@ let package = Package(
         .target(name: "AccessMacro", dependencies: ["AccessMacroImplementation"]),
 
         // A client of the library, which is able to use the macro in its own code.
-        .executableTarget(name: "AccessMacroClient", dependencies: ["AccessMacro"]),
+        .executableTarget(
+            name: "AccessMacroClient",
+            dependencies: [
+                "AccessMacro",
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+            ]),
 
         // A test target used to develop the macro implementation.
         .testTarget(
