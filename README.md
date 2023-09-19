@@ -85,8 +85,10 @@ public enum Action {
 ```
 By placing the action declaration in the same file as the TCA `Reducer` we can limit `Fileprivate` action to be only visible in that file, 
 while allowing parent reducers read `Delegate` action and emit `Public` action, forbidding the rest.
-The downside of the approach is that the whole action can't be switched over using single `switch` and a separate `switch` statements are required over `action.value`, 
+The downside of the approach is that the whole action can't be switched over using single `switch` and a separate `switch` statements are required over each `action.value`, 
 but that can be benefitial for ensuring less catch all `default` statements and also can be mitigated by using a generated `is` function for `Equatable` types.
+
+See [AccessMacroClient](Sources/AccessMacroClient) and [AccessTests](Tests/AccessMacroTests/AccessTests.swift) for more readable examples.
 
 ## Features
 - [X] Generate a wrapper with separate access levels to `let value` and `init(value)`
