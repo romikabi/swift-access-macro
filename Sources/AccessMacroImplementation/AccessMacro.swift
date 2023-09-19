@@ -1,7 +1,7 @@
 import SwiftSyntax
 import SwiftSyntaxMacros
 
-public struct AccessMacro: PeerMacro {
+public enum AccessMacro: PeerMacro {
     enum Error: Swift.Error, CustomStringConvertible {
         case notModifiable
         case notNamed
@@ -24,7 +24,31 @@ public struct AccessMacro: PeerMacro {
         providingPeersOf declaration: some DeclSyntaxProtocol,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        let params = try Params(node: node, declaration: declaration)
+        guard let modified = declaration.asProtocol(WithModifiersSyntax.self) else {
+            throw Error.notModifiable
+        }
+
+        guard let named = declaration.asProtocol(NamedDeclSyntax.self) else {
+            throw Error.notNamed
+        }
+
+        let access = modified
+            .modifiers
+            .access
+            .map { "\($0)" }?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let property = node.argument(name: "property")?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        ?? "value"
+        let name = "\(named.name)".trimmingCharacters(in: .whitespacesAndNewlines)
+        let read = (
+            node.argument(name: "read")?.trimmingCharacters(in: .whitespacesAndNewlines)
+            ?? access
+        ).map { "\($0) " } ?? ""
+        let emit = (
+            node.argument(name: "emit")?.trimmingCharacters(in: .whitespacesAndNewlines)
+            ?? access
+        ).map { "\($0) " } ?? ""
         let genericParameterClause = declaration
             .asProtocol(WithGenericParametersSyntax.self)?
             .genericParameterClause
@@ -32,7 +56,7 @@ public struct AccessMacro: PeerMacro {
             .asProtocol(DeclGroupSyntax.self)?
             .inheritanceClause
         let typename = join([
-            params.name,
+            name,
             genericParameterClause.map { generics in
                 join([
                     "<",
@@ -49,12 +73,12 @@ public struct AccessMacro: PeerMacro {
 
         let accessor = StructDeclSyntax(
             modifiers: [DeclModifierSyntax(name: .keyword(.public))],
-            name: "\(raw: params.name)Accessor",
+            name: "\(raw: name)Accessor",
             genericParameterClause: genericParameterClause,
             inheritanceClause: inheritanceClause.map { clause in
                 InheritanceClauseSyntax(inheritedTypesBuilder: {
                     for type in clause.inheritedTypes
-                    where ["Equatable", "Hashable"] .contains(type.type.trimmedDescription) {
+                    where allowedInheritances.contains(type.type.trimmedDescription) {
                         type
                     }
                 })
@@ -64,19 +88,19 @@ public struct AccessMacro: PeerMacro {
                 .genericWhereClause,
             memberBlockBuilder: {
                 """
-                \(raw: params.read)let \(raw: params.property): \(raw: typename)
+                \(raw: read)let \(raw: property): \(raw: typename)
                 """
 
                 """
-                \(raw: params.emit)init(_ \(raw: params.property): \(raw: typename)) {
-                    self.\(raw: params.property) = \(raw: params.property)
+                \(raw: emit)init(_ \(raw: property): \(raw: typename)) {
+                    self.\(raw: property) = \(raw: property)
                 }
                 """
 
                 if let declaration = declaration.asProtocol(DeclGroupSyntax.self) {
                     for member in declaration.memberBlock.members {
                         if let enumCase = member.decl.as(EnumCaseDeclSyntax.self) {
-                            for f in makers(for: enumCase, emit: params.emit, context: context) {
+                            for f in makers(for: enumCase, emit: emit, context: context) {
                                 f
                             }
                         }
@@ -84,11 +108,11 @@ public struct AccessMacro: PeerMacro {
                 }
 
                 if let inheritanceClause, inheritanceClause.inheritedTypes.contains(where: {
-                    $0.type.trimmedDescription == "Equatable"
+                    $0.type.trimmedDescription == equatable
                 }) {
                     """
-                    \(raw: params.read)func `is`(_ \(raw: params.property): \(raw: typename)) -> Bool {
-                        self.\(raw: params.property) == \(raw: params.property)
+                    \(raw: read)func `is`(_ \(raw: property): \(raw: typename)) -> Bool {
+                        self.\(raw: property) == \(raw: property)
                     }
                     """
                 }
@@ -100,40 +124,9 @@ public struct AccessMacro: PeerMacro {
         ].compactMap { $0 }
     }
 
-    private struct Params {
-        var name: String
-        var read: String
-        var emit: String
-        var property: String
-
-        init(node: AttributeSyntax, declaration: some SyntaxProtocol) throws {
-            guard let modified = declaration.asProtocol(WithModifiersSyntax.self) else {
-                throw Error.notModifiable
-            }
-
-            guard let named = declaration.asProtocol(NamedDeclSyntax.self) else {
-                throw Error.notNamed
-            }
-
-            let access = modified
-                .modifiers
-                .access
-                .map { "\($0)" }?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            let read = node.argument(name: "read")?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            let emit = node.argument(name: "emit")?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            let property = node.argument(name: "property")?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            ?? "value"
-
-            self.name = "\(named.name)".trimmingCharacters(in: .whitespacesAndNewlines)
-            self.property = property
-            self.read = (read ?? access).map { "\($0) " } ?? ""
-            self.emit = (emit ?? access).map { "\($0) " } ?? ""
-        }
-    }
+    private static let equatable = "Equatable"
+    private static let hashable = "Hashable"
+    private static let allowedInheritances = [equatable, hashable]
 }
 
 private func makers(
