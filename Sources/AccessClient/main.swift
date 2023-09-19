@@ -3,22 +3,22 @@ import Access
 public enum Action {
     @Access(read: .fileprivate)
     public enum Public {
-        case publicAction1
+        case a(Int)
     }
 
     @Access(emit: .fileprivate)
     public enum Delegate {
-        case delegateAction1
+        case b(value: Int)
     }
 
     @Access
     fileprivate enum Fileprivate {
-        case fileprivateAction1
+        case c(_ value: Int)
     }
 
     @Access
     enum Internal {
-        case internalAction1
+        case d(Int), e(Int), f
     }
 
     case `public`(PublicAccessor)
@@ -28,29 +28,31 @@ public enum Action {
 }
 
 let actions: [Action] = [
-    .public(.init(.publicAction1)),
-    .delegate(.init(.delegateAction1)),
-    .fileprivate(.init(.fileprivateAction1)),
-    .internal(.init(.internalAction1)),
+    .public(.a(1)),
+    .delegate(.b(value: 2)),
+    .fileprivate(.c(3)),
+    .internal(.d(4)),
+    .internal(.d(5)),
+    .internal(.f),
 ]
 
 func handleInTheSameFile(_ action: Action) {
     switch action {
     case .public(let action):
         switch action.value {
-        case .publicAction1: break
+        case .a: break
         }
     case .delegate(let action):
         switch action.value {
-        case .delegateAction1: break
+        case .b: break
         }
     case .fileprivate(let action):
         switch action.value {
-        case .fileprivateAction1: break
+        case .c: break
         }
     case .internal(let action):
         switch action.value {
-        case .internalAction1: break
+        case .d, .e, .f: break
         }
     }
 }

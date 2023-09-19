@@ -10,7 +10,7 @@
 ///   - emit: Access modifier for wrapper's `init`, as well as a helper `static func`.
 ///   Should be the same or more strict than than the declaration modifier.
 ///   Use `nil` to inherit the declaration modifier.
-///   - propertyName: The name of the wrapper property, containing declaration.
+///   - property: The name of the wrapper property, containing declaration.
 ///   Use `nil` to use the default `value`.
 ///
 /// Example expansion:
@@ -34,5 +34,5 @@
 public macro Access(
     read: AccessType? = nil,
     emit: AccessType? = nil,
-    propertyName: String? = nil
+    property: String? = nil
 ) = #externalMacro(module: "AccessMacros", type: "AccessMacro")

@@ -19,49 +19,122 @@ public struct AccessMacro: PeerMacro {
         }
     }
 
-    public static func expansion<Context, Declaration>(
+    public static func expansion(
         of node: AttributeSyntax,
-        providingPeersOf declaration: Declaration,
-        in context: Context
-    ) throws -> [DeclSyntax] where Context: MacroExpansionContext, Declaration: DeclSyntaxProtocol {
-        guard let modified = declaration.asProtocol(WithModifiersSyntax.self) else {
-            throw Error.notModifiable
-        }
+        providingPeersOf declaration: some DeclSyntaxProtocol,
+        in context: some MacroExpansionContext
+    ) throws -> [DeclSyntax] {
+        let params = try Params(node: node, declaration: declaration)
 
-        guard let named = declaration.asProtocol(NamedDeclSyntax.self) else {
-            throw Error.notNamed
-        }
+        let accessor = StructDeclSyntax(
+            modifiers: [DeclModifierSyntax(name: .keyword(.public))],
+            name: "\(raw: params.name)Accessor",
+            genericParameterClause: declaration
+                .asProtocol(WithGenericParametersSyntax.self)?
+                .genericParameterClause,
+            inheritanceClause: declaration
+                .asProtocol(DeclGroupSyntax.self)?
+                .inheritanceClause,
+            genericWhereClause: declaration
+                .asProtocol(WithGenericParametersSyntax.self)?
+                .genericWhereClause,
+            memberBlockBuilder: {
+                """
+                \(raw: params.read)let \(raw: params.property): \(raw: params.name)
+                """
 
-        let access = modified.modifiers.access.map { "\($0) " } ?? ""
-        let identifier = "\(named.name)".trimmingCharacters(in: .whitespacesAndNewlines)
-        let suffix = "Accessor"
-        let wrapper = identifier + suffix
-        let inheritance = declaration
-            .asProtocol(DeclGroupSyntax.self)?
-            .inheritanceClause?.description ?? ""
-        let read = node
-            .argument(name: "read")
-            .map { $0 + " " } ?? access
-        let emit = node
-            .argument(name: "emit")
-            .map { $0 + " " } ?? access
-        let propertyName = node
-            .argument(name: "propertyName")?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        ?? "value"
+                """
+                \(raw: params.emit)init(_ \(raw: params.property): \(raw: params.name)) {
+                    self.\(raw: params.property) = \(raw: params.property)
+                }
+                """
 
-        return [
-            """
-            public struct \(raw: wrapper)\(raw: inheritance){
-                \(raw: read)let \(raw: propertyName): \(raw: identifier)
-
-                \(raw: emit)init(_ \(raw: propertyName): \(raw: identifier)) {
-                    self.\(raw: propertyName) = \(raw: propertyName)
+                if let declaration = declaration.asProtocol(DeclGroupSyntax.self) {
+                    for member in declaration.memberBlock.members {
+                        if let enumCase = member.decl.as(EnumCaseDeclSyntax.self) {
+                            for f in makers(for: enumCase, emit: params.emit, context: context) {
+                                f
+                            }
+                        }
+                    }
                 }
             }
-            """
-        ]
+        )
+
+        return [
+            accessor.as(DeclSyntax.self)
+        ].compactMap { $0 }
     }
+
+    private struct Params {
+        var name: String
+        var read: String
+        var emit: String
+        var property: String
+
+        init(node: AttributeSyntax, declaration: some SyntaxProtocol) throws {
+            guard let modified = declaration.asProtocol(WithModifiersSyntax.self) else {
+                throw Error.notModifiable
+            }
+
+            guard let named = declaration.asProtocol(NamedDeclSyntax.self) else {
+                throw Error.notNamed
+            }
+
+            let access = modified
+                .modifiers
+                .access
+                .map { "\($0)" }?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let read = node.argument(name: "read")?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let emit = node.argument(name: "emit")?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let property = node.argument(name: "property")?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            ?? "value"
+
+            self.name = "\(named.name)".trimmingCharacters(in: .whitespacesAndNewlines)
+            self.property = property
+            self.read = (read ?? access).map { "\($0) " } ?? ""
+            self.emit = (emit ?? access).map { "\($0) " } ?? ""
+        }
+    }
+}
+
+private func makers(
+    for enumCase: EnumCaseDeclSyntax,
+    emit: String,
+    context: some MacroExpansionContext
+) -> [DeclSyntax] {
+    enumCase.elements.map { c in
+        let parameters = c.parameterClause?.parameters.enumerated().map { (index, parameter) in
+            (
+                parameter.firstName ?? .wildcardToken(),
+                secondName(first: parameter.firstName, second: parameter.secondName, at: index),
+                parameter.type
+            )
+        } ?? []
+        if parameters.isEmpty {
+            return """
+            \(raw: emit)static let \(raw: c.name) = Self(.\(raw: c.name))
+            """
+        } else {
+            let signatureParams = parameters.map { "\($0.0) \($0.1): \($0.2)" }.joined(separator: ", ")
+            let callParams = parameters.map { "\($0.0): \($0.1)" }.joined(separator: ", ")
+            return """
+            \(raw: emit)static func \(raw: c.name)(\(raw: signatureParams)) -> Self {
+                return Self(.\(raw: c.name)(\(raw: callParams)))
+            }
+            """
+        }
+    }
+}
+
+private func secondName(first: TokenSyntax?, second: TokenSyntax?, at index: Int) -> TokenSyntax {
+    if let second { return second }
+    if let first, first != .wildcardToken() { return first }
+    return "param\(raw: index)"
 }
 
 extension DeclModifierListSyntax {

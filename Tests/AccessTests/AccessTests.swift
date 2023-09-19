@@ -25,7 +25,6 @@ final class ComposableActionTests: XCTestCase {
 
                 public struct AAccessor {
                     let value: A
-
                     init(_ value: A) {
                         self.value = value
                     }
@@ -54,7 +53,6 @@ final class ComposableActionTests: XCTestCase {
 
                 public struct DelegateAccessor {
                     public let value: Delegate
-
                     fileprivate init(_ value: Delegate) {
                         self.value = value
                     }
@@ -83,7 +81,6 @@ final class ComposableActionTests: XCTestCase {
 
                 public struct PrivateAccessor {
                     fileprivate let value: Private
-
                     fileprivate init(_ value: Private) {
                         self.value = value
                     }
@@ -112,7 +109,6 @@ final class ComposableActionTests: XCTestCase {
 
                 public struct PublicAccessor {
                     fileprivate let value: Public
-
                     public init(_ value: Public) {
                         self.value = value
                     }
