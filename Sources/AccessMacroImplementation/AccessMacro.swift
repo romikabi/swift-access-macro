@@ -9,7 +9,7 @@ public enum AccessMacro: PeerMacro {
         var description: String {
             switch self {
             case .notNamed:
-                return "Declaration should have a name"
+                return "Macro should be applied to a type declaration"
             case let .custom(description):
                 return description
             }
