@@ -6,6 +6,7 @@ import AccessMacros
 import SwiftSyntaxMacrosTestSupport
 import XCTest
 
+
 final class ComposableActionTests: XCTestCase {
     private let macros: [String: Macro.Type] = [
         "Access": AccessMacro.self

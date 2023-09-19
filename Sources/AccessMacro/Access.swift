@@ -35,4 +35,4 @@ public macro Access(
     read: AccessType? = nil,
     emit: AccessType? = nil,
     property: String? = nil
-) = #externalMacro(module: "AccessMacros", type: "AccessMacro")
+) = #externalMacro(module: "AccessMacroImplementation", type: "AccessMacro")

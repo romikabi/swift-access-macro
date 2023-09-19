@@ -1,4 +1,4 @@
-import Access
+import AccessMacro
 
 public enum Action {
     @Access(read: .fileprivate)
