@@ -3,14 +3,11 @@ import SwiftSyntaxMacros
 
 public enum AccessMacro: PeerMacro {
     enum Error: Swift.Error, CustomStringConvertible {
-        case notModifiable
         case notNamed
         case custom(String)
 
         var description: String {
             switch self {
-            case .notModifiable:
-                return "Declaration should have an access level"
             case .notNamed:
                 return "Declaration should have a name"
             case let .custom(description):
@@ -24,15 +21,12 @@ public enum AccessMacro: PeerMacro {
         providingPeersOf declaration: some DeclSyntaxProtocol,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        guard let modified = declaration.asProtocol(WithModifiersSyntax.self) else {
-            throw Error.notModifiable
-        }
-
         guard let named = declaration.asProtocol(NamedDeclSyntax.self) else {
             throw Error.notNamed
         }
 
-        let access = modified
+        let access = declaration
+            .asProtocol(WithModifiersSyntax.self)?
             .modifiers
             .access
             .map { "\($0)" }?
