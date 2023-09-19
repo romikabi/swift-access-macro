@@ -40,7 +40,7 @@ final class ComposableActionTests: XCTestCase {
             """
             enum Action {
                 @Access(emit: .fileprivate)
-                public enum Delegate {
+                public enum Delegate: Equatable {
                     case action
                 }
             }

@@ -2,7 +2,7 @@ import Access
 
 public enum Action {
     @Access(read: .fileprivate)
-    public enum Public {
+    public enum Public: Equatable {
         case a(Int)
     }
 
@@ -38,6 +38,8 @@ let actions: [Action] = [
 
 func handleInTheSameFile(_ action: Action) {
     switch action {
+    case .public(let action) where action.is(.a(1)):
+        break
     case .public(let action):
         switch action.value {
         case .a: break

@@ -25,6 +25,9 @@ public struct AccessMacro: PeerMacro {
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
         let params = try Params(node: node, declaration: declaration)
+        let inheritanceClause = declaration
+            .asProtocol(DeclGroupSyntax.self)?
+            .inheritanceClause
 
         let accessor = StructDeclSyntax(
             modifiers: [DeclModifierSyntax(name: .keyword(.public))],
@@ -32,9 +35,7 @@ public struct AccessMacro: PeerMacro {
             genericParameterClause: declaration
                 .asProtocol(WithGenericParametersSyntax.self)?
                 .genericParameterClause,
-            inheritanceClause: declaration
-                .asProtocol(DeclGroupSyntax.self)?
-                .inheritanceClause,
+            inheritanceClause: inheritanceClause,
             genericWhereClause: declaration
                 .asProtocol(WithGenericParametersSyntax.self)?
                 .genericWhereClause,
@@ -57,6 +58,16 @@ public struct AccessMacro: PeerMacro {
                             }
                         }
                     }
+                }
+
+                if let inheritanceClause, inheritanceClause.inheritedTypes.contains(where: {
+                    $0.type.trimmedDescription == "Equatable"
+                }) {
+                    """
+                    \(raw: params.read)func `is`(_ \(raw: params.property): \(raw: params.name)) -> Bool {
+                        self.\(raw: params.property) == \(raw: params.property)
+                    }
+                    """
                 }
             }
         )
