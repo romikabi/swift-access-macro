@@ -232,5 +232,74 @@ final class ComposableActionTests: XCTestCase {
             """
         }
     }
+
+    func testGenerics() {
+        assertMacro {
+            """
+            @Access
+            struct Struct<A, B: Equatable>: Equatable where A: Equatable {}
+            """
+        } matches: {
+            """
+            struct Struct<A, B: Equatable>: Equatable where A: Equatable {}
+
+            public struct StructAccessor<A, B: Equatable>: Equatable where A: Equatable {
+                let value: Struct<A, B>
+                init(_ value: Struct<A, B>) {
+                    self.value = value
+                }
+                func `is`(_ value: Struct<A, B>) -> Bool {
+                    self.value == value
+                }
+            }
+            """
+        }
+    }
+
+    func testVariadicGeneric() {
+        assertMacro {
+            """
+            @Access
+            struct A<each W>: Equatable {}
+            """
+        } matches: {
+            """
+            struct A<each W>: Equatable {}
+
+            public struct AAccessor<each W>: Equatable {
+                let value: A<repeat each W>
+                init(_ value: A<repeat each W>) {
+                    self.value = value
+                }
+                func `is`(_ value: A<repeat each W>) -> Bool {
+                    self.value == value
+                }
+            }
+            """
+        }
+    }
+
+    func testInheritUnknownType() {
+        assertMacro {
+            """
+            @Access
+            struct A: Equatable, SomeType, Hashable {}
+            """
+        } matches: {
+            """
+            struct A: Equatable, SomeType, Hashable {}
+
+            public struct AAccessor: Equatable, Hashable {
+                let value: A
+                init(_ value: A) {
+                    self.value = value
+                }
+                func `is`(_ value: A) -> Bool {
+                    self.value == value
+                }
+            }
+            """
+        }
+    }
 }
 #endif

@@ -25,27 +25,50 @@ public struct AccessMacro: PeerMacro {
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
         let params = try Params(node: node, declaration: declaration)
+        let genericParameterClause = declaration
+            .asProtocol(WithGenericParametersSyntax.self)?
+            .genericParameterClause
         let inheritanceClause = declaration
             .asProtocol(DeclGroupSyntax.self)?
             .inheritanceClause
+        let typename = join([
+            params.name,
+            genericParameterClause.map { generics in
+                join([
+                    "<",
+                    join(separator: ", ", generics.parameters.map { generic in
+                        join(separator: " ", [
+                            generic.eachKeyword.map { _ in "repeat each" },
+                            generic.name.trimmedDescription,
+                        ])
+                    }),
+                    ">",
+                ])
+            }
+        ])
 
         let accessor = StructDeclSyntax(
             modifiers: [DeclModifierSyntax(name: .keyword(.public))],
             name: "\(raw: params.name)Accessor",
-            genericParameterClause: declaration
-                .asProtocol(WithGenericParametersSyntax.self)?
-                .genericParameterClause,
-            inheritanceClause: inheritanceClause,
+            genericParameterClause: genericParameterClause,
+            inheritanceClause: inheritanceClause.map { clause in
+                InheritanceClauseSyntax(inheritedTypesBuilder: {
+                    for type in clause.inheritedTypes
+                    where ["Equatable", "Hashable"] .contains(type.type.trimmedDescription) {
+                        type
+                    }
+                })
+            },
             genericWhereClause: declaration
                 .asProtocol(WithGenericParametersSyntax.self)?
                 .genericWhereClause,
             memberBlockBuilder: {
                 """
-                \(raw: params.read)let \(raw: params.property): \(raw: params.name)
+                \(raw: params.read)let \(raw: params.property): \(raw: typename)
                 """
 
                 """
-                \(raw: params.emit)init(_ \(raw: params.property): \(raw: params.name)) {
+                \(raw: params.emit)init(_ \(raw: params.property): \(raw: typename)) {
                     self.\(raw: params.property) = \(raw: params.property)
                 }
                 """
@@ -64,7 +87,7 @@ public struct AccessMacro: PeerMacro {
                     $0.type.trimmedDescription == "Equatable"
                 }) {
                     """
-                    \(raw: params.read)func `is`(_ \(raw: params.property): \(raw: params.name)) -> Bool {
+                    \(raw: params.read)func `is`(_ \(raw: params.property): \(raw: typename)) -> Bool {
                         self.\(raw: params.property) == \(raw: params.property)
                     }
                     """
@@ -152,6 +175,10 @@ private func secondName(first: TokenSyntax?, second: TokenSyntax?, at index: Int
     if let second { return second }
     if let first, first != .wildcardToken() { return nil }
     return "param\(raw: index)"
+}
+
+private func join(separator: String = "", _ strings: [String?]) -> String {
+    strings.compactMap { $0 }.joined(separator: separator)
 }
 
 extension DeclModifierListSyntax {
