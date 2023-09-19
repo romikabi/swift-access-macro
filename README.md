@@ -104,7 +104,7 @@ case didStart(at: Date)
 // of a wrapped type
 // yields
 fileprivate static func didStart(at: Date) -> Self {
-    return Self(.childInternalAction(at: at))
+    return Self(.didStart(at: at))
 }
 // on a wrapper, keeping the action creation syntax intact
 ```
