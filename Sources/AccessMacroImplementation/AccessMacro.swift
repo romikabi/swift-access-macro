@@ -121,9 +121,9 @@ private func makers(
     enumCase.elements.map { c in
         let parameters = c.parameterClause?.parameters.enumerated().map { (index, parameter) in
             (
-                parameter.firstName ?? .wildcardToken(),
-                secondName(first: parameter.firstName, second: parameter.secondName, at: index),
-                parameter.type
+                first: parameter.firstName ?? .wildcardToken(),
+                second: secondName(first: parameter.firstName, second: parameter.secondName, at: index),
+                type: parameter.type
             )
         } ?? []
         if parameters.isEmpty {
@@ -131,8 +131,14 @@ private func makers(
             \(raw: emit)static let \(raw: c.name) = Self(.\(raw: c.name))
             """
         } else {
-            let signatureParams = parameters.map { "\($0.0) \($0.1): \($0.2)" }.joined(separator: ", ")
-            let callParams = parameters.map { "\($0.0): \($0.1)" }.joined(separator: ", ")
+            let signatureParams = parameters.map {
+                "\($0.first)"
+                + ($0.second.map { " \($0)" } ?? "")
+                + ": \($0.type)"
+            }.joined(separator: ", ")
+            let callParams = parameters.map {
+                "\($0.first): \($0.second ?? $0.first)"
+            }.joined(separator: ", ")
             return """
             \(raw: emit)static func \(raw: c.name)(\(raw: signatureParams)) -> Self {
                 return Self(.\(raw: c.name)(\(raw: callParams)))
@@ -142,9 +148,9 @@ private func makers(
     }
 }
 
-private func secondName(first: TokenSyntax?, second: TokenSyntax?, at index: Int) -> TokenSyntax {
+private func secondName(first: TokenSyntax?, second: TokenSyntax?, at index: Int) -> TokenSyntax? {
     if let second { return second }
-    if let first, first != .wildcardToken() { return first }
+    if let first, first != .wildcardToken() { return nil }
     return "param\(raw: index)"
 }
 
