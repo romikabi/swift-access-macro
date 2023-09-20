@@ -37,14 +37,14 @@ public enum Action {
         case didFinishLoading
     }
 
-    fileprivate enum Fileprivate {
+    public enum Internal {
         case progressChanged(Double)
         case loadingFinished
     }
 
     case `public`(Public)
     case delegate(Delegate)
-    case `fileprivate`(Fileprivate)
+    case `internal`(Internal)
 }
 ```
 
