@@ -11,10 +11,6 @@ let package = Package(
             name: "AccessMacro",
             targets: ["AccessMacro"]
         ),
-        .executable(
-            name: "AccessMacroClient",
-            targets: ["AccessMacroClient"]
-        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-syntax.git", from: "509.0.0"),
