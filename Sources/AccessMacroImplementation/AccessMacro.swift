@@ -170,7 +170,7 @@ private func join(separator: String = "", _ strings: [String?]) -> String {
 
 extension DeclModifierListSyntax {
     fileprivate var access: Keyword? {
-        [Keyword.public, .private, .internal, .fileprivate].first { access in
+        [Keyword.public, .private, .internal, .fileprivate, .package].first { access in
             map(\.name.tokenKind).contains(.keyword(access))
         }
     }
