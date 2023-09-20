@@ -1,4 +1,8 @@
 # Swift Access Macro
+
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fromikabi%2Fswift-access-macro%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/romikabi/swift-access-macro)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fromikabi%2Fswift-access-macro%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/romikabi/swift-access-macro)
+
 `@Access` macro is designed to simplify granular access level control for your Swift types.
 ```swift
 @Access(emit: .fileprivate)
