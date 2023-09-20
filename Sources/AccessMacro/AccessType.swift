@@ -3,4 +3,5 @@ public enum AccessType {
     case `private`
     case `internal`
     case `public`
+    case `package`
 }
