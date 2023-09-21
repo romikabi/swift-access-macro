@@ -1,0 +1,15 @@
+version: 1
+builder:
+  configs:
+  - platform: ios
+    scheme: AccessMacro
+  - platform: macos-spm
+    scheme: AccessMacro
+  - platform: macos-xcodebuild
+    scheme: AccessMacro
+  - platform: tvos
+    scheme: AccessMacro
+  - platform: watchos
+    scheme: AccessMacro
+  - platform: linux
+    scheme: AccessMacro

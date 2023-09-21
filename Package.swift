@@ -16,6 +16,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-syntax.git", from: "509.0.0"),
         .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.1.0"),
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", from: "1.0.0"),
+        .package(url: "https://github.com/SwiftPackageIndex/SPIManifest.git", from: "0.12.0"),
     ],
     targets: [
         // Macro implementation that performs the source transformation of a macro.
@@ -36,7 +37,15 @@ let package = Package(
             dependencies: [
                 "AccessMacro",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]),
+            ]
+        ),
+
+        .executableTarget(
+            name: "SPIManifestGenerator",
+            dependencies: [
+                .product(name: "SPIManifest", package: "SPIManifest"),
+            ]
+        ),
 
         // A test target used to develop the macro implementation.
         .testTarget(
