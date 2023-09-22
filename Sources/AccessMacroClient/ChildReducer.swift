@@ -1,8 +1,7 @@
 import AccessMacro
-import ComposableArchitecture
 import Foundation
 
-public struct Child: Reducer {
+public struct ChildReducer {
     public struct State: Equatable {
         var url: URL?
         var progress: Double?
@@ -30,18 +29,18 @@ public struct Child: Reducer {
         case `fileprivate`(FileprivateAccessor)
     }
 
-    public func reduce(into state: inout State, action: Action) -> Effect<Action> {
+    public func reduce(into state: inout State, action: Action) {
         switch action {
         case .public(let action):
             switch action.value {
             case .load(let url):
                 state.url = url
-                return .run { send in
-                    for step in 1...5 {
+                Task { // send in
+                    for _ /* step */ in 1...5 {
                         try await Task.sleep(nanoseconds: NSEC_PER_SEC / 10)
-                        await send(.fileprivate(.progressChanged(Double(step) / 5)))
+//                      await send(.fileprivate(.progressChanged(Double(step) / 5)))
                     }
-                    await send(.fileprivate(.loadingFinished))
+//                  await send(.fileprivate(.loadingFinished))
                 }
             }
         case .fileprivate(let action):
@@ -49,13 +48,12 @@ public struct Child: Reducer {
             case .progressChanged(let progress):
                 state.progress = progress
                 print("progress is \(progress)")
-                return .none
             case .loadingFinished:
                 state.progress = 1
-                return .send(.delegate(.didFinishLoading))
+//              return .send(.delegate(.didFinishLoading))
             }
         case .delegate:
-            return .none
+            break
         }
     }
 }
